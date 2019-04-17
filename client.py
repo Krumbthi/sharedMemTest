@@ -3,27 +3,30 @@ import os
 import sys
 import logging
 import time
-import mmap
-import subprocess
-from random import sample
+from enum import Enum
+#import share
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Logging
 # ----------------------------------------------------------------------------------------------------------------------
 logging.basicConfig(format='%(asctime)s %(name)s %(message)s', level=logging.DEBUG)
-Logger = logging.getLogger(__name__)
+Logger = logging.getLogger("client")
 
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Defines
 # ----------------------------------------------------------------------------------------------------------------------
 ShmPath = "/dev/shm"
-Rand = ["add", "sub", "mul", "div"]
+class Action(Enum):
+    ADD = 'add'
+    SUB = 'sub'
+    MUL = 'mul'
+    DIV = 'div'
 
 # ----------------------------------------------------------------------------------------------------------------------
 # functions
 # ----------------------------------------------------------------------------------------------------------------------
-
 
 # ----------------------------------------------------------------------------------------------------------------------
 # main loop
@@ -31,41 +34,36 @@ Rand = ["add", "sub", "mul", "div"]
 def main():
     # create file first
     fn = os.path.normpath(ShmPath + '/' + 'suchfoo')
-    d = {"cnt": 0, "msg": "Hello World"}
-    
-    # write a simple example file
-    Logger.debug("create: {}".format(fn))
-    
-    f = open(fn, "w")
-    f.write(json.dumps(d))
-    f.close()
-    Logger.debug("Writing to file")
-
-    # fi = open(fn, 'r+')
-    # mm = mmap.mmap(fi.fileno(), 0, access=mmap.ACCESS_WRITE)
-    # Logger.debug("Writing to file")
-    # mm.write(json.dumps(d))
-    # mm.close()
-
     Running = True
+    _file = open(fn, 'r')
 
     try:
         while Running:
-            d["cnt"] += 1
-            #d['msg'] = 'counter inc to: %d' %d['cnt']
-            d["msg"] = sample(Rand, 1)[0]
-
             with open(fn, 'r+') as f:
-                mm = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_WRITE)
-                Logger.debug("Writing to file")
-                mm.write(json.dumps(d).encode())
-                mm.close()
+                res = f.read()
+                Logger.debug(res)
+                if len(res) > 0:
+                    #d = json.loads(res.decode())
+                    d = json.loads(res)
+                
+                    if d['msg'] == "add":
+                        d['cnt'] += 1
+                    elif d['msg'] == "sub":
+                        d['cnt'] -= 1
+                    elif d['msg'] == "mul":
+                        d['cnt'] *= 2
+                    elif d['msg'] == "div":
+                        d['cnt'] /= 2
+                    
+                    f.write(json.dumps(d))
+                    Logger.debug(d["cnt"])
 
-            time.sleep(1)
+            time.sleep(0.2)
 
     except KeyboardInterrupt:
         Running = False
-        os.system("rm {}".format(fn))
+        # os.system("rm {}".format(fn))
+
 
 if __name__ == '__main__':
     main()
